@@ -219,15 +219,16 @@ else:
 
 if nuclear_escape:
     # Run the simulation
-    result_one_sim, m1_one_sim, q1_one_sim = simulate_hierarchical_merging(op_sys, bh_mass, bh_kerr, n_max_gen, escape_velocity, nuclear_escape=nuclear_escape, young_escape=young_escape, globular_escape=globular_escape)
+    result_one_sim, m1_one_sim, q1_one_sim = simulate_hierarchical_merging(op_sys, bh_mass, bh_kerr, n_max_gen, escape_velocity, initial_params, nuclear_escape=nuclear_escape, young_escape=young_escape, globular_escape=globular_escape)
 
     print('One simulation completed successfully!\nYou can see the plots in the Results directory.')
 
     # Save the results
-    plot_one_sim(result_one_sim, cluster_env)
+    plot_one_sim(result_one_sim, cluster_env, output)
 
 
-sim_result, sim_result_extended_array, m1_vals, q_vals = run_n_simulations(op_sys, bh_mass, bh_kerr, n_simulations= n_sim, max_generation=n_max_gen, escape_velocity=escape_velocity,\
+sim_result, sim_result_extended_array, m1_vals, q_vals = run_n_simulations(op_sys, bh_mass, bh_kerr, n_simulations= n_sim, max_generation=n_max_gen,\
+                                                                            escape_velocity=escape_velocity, initial_params=initial_params,\
                                                                             nuclear_escape=nuclear_escape, young_escape=young_escape, globular_escape=globular_escape)
 print('\nSimulation completed successfully!')
 
@@ -244,7 +245,7 @@ print('Results saved successfully!\n')
 # Plot the inherent merging probabilities for different generations in the star cluster environment
 inherent_merge_probability, gens_count, gens_distrbution = get_inherent_merge_probability(n_sim, sim_result, n_max_gen)
 
-plot_merge_prob(inherent_merge_probability, gens_count, n_max_gen, cluster_env)
+plot_merge_prob(inherent_merge_probability, gens_distrbution, n_max_gen, cluster_env)
 
 plot_weighted_merge_prob(gens_distrbution, n_max_gen, cluster_env, q_vals, m1_vals)
 
@@ -266,9 +267,27 @@ print("\nResults are stored in a dictionary format to access them as you wish, a
         "M1 is the maximum of the two BH masses at each step/merger.\n"\
         "Q is the mass ratio of the two merging black hole at every merger.")
 
+
+
+print("\n\n*************************** Analyzing the results ****************************\n")
+print('Creating plots to analyze the results...')
+
+# Change directory to where the data is stored
+os.chdir(f'{output}')
+
+# Extract the data for each generation
+simulation_param_data = np.array([np.loadtxt(f'Results_data_{cluster_env}/each_gen_data_Gen_{i}.txt', skiprows=1) for i in range(2, n_max_gen+1)])
+
+concat_data = np.loadtxt(f'Results_data_{cluster_env}/Concatenated_param_evol_{cluster_env}.csv', skiprows=1)
+
+
+try:
+    # Plotting correlation plot for the black hole parameters
+    plot_correlations(simulation_param_data, concat_data, cluster_env, n_max_gen)
+
+except:
+    print('Increase the number of generations to plot the correlation plot.')
+
+print('\nPlots saved successfully!')
+
 print('\nExiting the script...')
-
-
-
-
-

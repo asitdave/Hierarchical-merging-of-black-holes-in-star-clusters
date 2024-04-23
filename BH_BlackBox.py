@@ -1,3 +1,27 @@
+# This script contains the functions required to run the hierarchical black hole merging simulation.
+
+# The functions include:
+# - get_OS(): Get the operating system of the user.
+# - get_post_merge_params(input_params: str, op_system: str): Calculate the parameters of the remnant blackhole using the gwkik2 executable.
+# - get_bh_data(): Get the Black Hole data from the file named 'bhlist'.
+# - select_random_bh(bh_mass: np.array, kerr_param: np.array, num_samples: int): Randomly select Black Hole parameters from the given data.
+# - extract_data(simulation_output: str): Extract relevant data from the simulation output.
+# - convert_to_str(input_params_dict: dict): Convert a dictionary of input parameters to a space-separated string.
+# - simulate_hierarchical_merging(op_system: str, bh_mass: np.array, kerr_param: np.array, total_generations: int, escape_velocity: dict, nuclear_escape=False, young_escape=False, globular_escape=False): Run a series of merging events constrained by the escape conditions.
+# - run_n_simulations(op_system: str, bh_mass: np.array, kerr_param: np.array, n_simulations: int, max_generation: int, escape_velocity: dict, nuclear_escape: bool, young_escape: bool, globular_escape: bool): Runs a specified number of simulations of hierarchical black hole mergers.
+# - get_inherent_merge_probability(n_sim: int, overall_result: dict, n_max_gen: int): Calculates the inherent merge probability for each generation in the simulations.
+# - plot_merge_prob(inherent_probabilities: list, gen_count: int, n_max_gen: int, cluster_environment: str): Plot the merge probability for each generation.
+# - plot_weighted_merge_prob(gen_distribution: list, n_max_gen: int, cluster_environment: str, q_vals: np.array, m1_vals: np.array): Plot the weighted merge probability for each generation.
+# - each_gen_data(overall_result: dict, n_max_gen: int): Extract data for each generation in the simulations.
+# - save_complete_simulation(file_path, result): Save the complete simulation data to a pickle file.
+# - save_concat_simulation_data(filename: str, generation_data: dict): Save the simulation data to a text file with clear column headers.
+# - save_each_gen_params(gen_data: dict, cluster_environment): Save the data for each generation in the simulations.
+
+
+# ------------------------------------------------------------------------------------------------------------
+
+# Importing required libraries
+
 import subprocess
 import numpy as np
 from tqdm import tqdm
@@ -33,7 +57,7 @@ def get_OS():
     else:
         return 'Unknown OS'
 
-
+#----------------------------------------------------------------------------------------#
 
 def get_post_merge_params(input_params: str, op_system: str) -> str:
     """
@@ -69,6 +93,7 @@ def get_post_merge_params(input_params: str, op_system: str) -> str:
     # Return the standard output (stdout) from the simulation
     return result.stdout
 
+#----------------------------------------------------------------------------------------#
 
 def get_bh_data():
     """
@@ -84,7 +109,6 @@ def get_bh_data():
 
     """
     
-
     extensions = [".dat", ".txt", ".csv", ".json", ".yaml"]  # List of extensions to check
 
     # Try to load the data from the file with different extensions
@@ -107,10 +131,8 @@ def get_bh_data():
         print('Create a file with the required format and save it as "bhlist.dat" or "bhlist.txt" in the directory and try again!')
         return np.array([])
 
-
     # Copy data to shuffle
     data = bh_data.copy()
-
     np.random.shuffle(data)
 
     # Extract the columns for BH Mass and Kerr Parameter
@@ -120,8 +142,9 @@ def get_bh_data():
     # Return the loaded data as a NumPy array
     return bh_mass, kerr_param
 
+#----------------------------------------------------------------------------------------#
 
-def select_random_bh(bh_mass: np.array, kerr_param: np.array, num_samples: int) -> tuple:
+def select_random_bh(bh_masses: np.array, kerr_params: np.array, num_samples: int) -> tuple:
     """
     Randomly select Black Hole parameters from the given data.
 
@@ -139,15 +162,15 @@ def select_random_bh(bh_mass: np.array, kerr_param: np.array, num_samples: int) 
     """
 
     # Randomly select two indices
-    idx = np.random.randint(low = 0, high = len(bh_mass), size=num_samples)
+    idx = np.random.randint(low = 0, high = len(bh_masses), size=num_samples)
 
     # Extract the BH Mass and Kerr Parameter for the selected indices
-    sample_bh_mass = bh_mass[idx]
-    sample_kerr_param = kerr_param[idx]
+    sample_bh_mass = bh_masses[idx]
+    sample_kerr_param = kerr_params[idx]
 
     return sample_bh_mass, sample_kerr_param
 
-
+#----------------------------------------------------------------------------------------#
 
 def extract_data(simulation_output: str) -> np.array:
     """
@@ -189,7 +212,7 @@ def extract_data(simulation_output: str) -> np.array:
     # Return the extracted data as a NumPy array
     return np.array([bh_mass_fin, kick_velocity, xeff, afin, sfin, thfin])
 
-
+#----------------------------------------------------------------------------------------#
 
 def convert_to_str(input_params_dict: dict) -> str:
     """
@@ -219,10 +242,10 @@ def convert_to_str(input_params_dict: dict) -> str:
     # Return the resulting string
     return str_input
 
+#----------------------------------------------------------------------------------------#
 
-
-
-def simulate_hierarchical_merging(op_system: str, bh_mass: np.array, kerr_param: np.array, total_generations: int, escape_velocity: dict,
+def simulate_hierarchical_merging(op_system: str, bh_masses: np.array, kerr_params: np.array, total_generations: int, 
+                                  escape_velocity: dict, initial_params: dict,
                                     nuclear_escape=False, young_escape=False, globular_escape=False) -> tuple:
 
     """
@@ -256,23 +279,10 @@ def simulate_hierarchical_merging(op_system: str, bh_mass: np.array, kerr_param:
     """
 
     # Generate the initial input parameters
-    sample_bh_mass, sample_kerr_param = select_random_bh(bh_mass, kerr_param, num_samples=2)
+    sample_bh_mass, sample_kerr_param = select_random_bh(bh_masses, kerr_params, num_samples=2)
 
     theta = np.random.randint(0, 180, size=2)
     phi = np.random.randint(0, 360, size=2)
-
-    initial_params = {
-        'm1': sample_bh_mass[0], # Mass of Black Hole 1
-        'm2': sample_bh_mass[1], # Mass of Black Hole 2
-        's1': -20.0, # Spin of Black Hole 1 (with dimension)
-        'theta1': theta[0], # Polar angle of Black Hole 1
-        'phi1': phi[0], # Azimuthal angle of Black Hole 1
-        's2': -20.0, # Spin of Black Hole 2 (with dimension)
-        'theta2': theta[1], # Polar angle of Black Hole 2
-        'phi2': phi[1], # Azimuthal angle of Black Hole 2
-        'a1': sample_kerr_param[0], # Kerr parameter of Black Hole 1 (dimensionless spin)
-        'a2': sample_kerr_param[1] # Kerr parameter of Black Hole 2 (dimensionless spin)
-    }
 
 
     # Create a dictionary to store the evolutionary information of the parameters for each merger
@@ -336,7 +346,7 @@ def simulate_hierarchical_merging(op_system: str, bh_mass: np.array, kerr_param:
         num_generation += 1
 
         # Generate new input parameters
-        sample_bh_mass, sample_kerr_param = select_random_bh(bh_mass, kerr_param, num_samples=1)
+        sample_bh_mass, sample_kerr_param = select_random_bh(bh_masses, kerr_params, num_samples=1)
         theta2 = np.random.randint(0, 180, size=1)
         phi2 = np.random.randint(0, 360, size=1)
 
@@ -359,10 +369,9 @@ def simulate_hierarchical_merging(op_system: str, bh_mass: np.array, kerr_param:
 
     return evol_info, np.array(m1), np.array(q)
 
+#----------------------------------------------------------------------------------------#
 
-
-
-def plot_one_sim(result: dict, cluster_environment = 'Nuclear') -> None:
+def plot_one_sim(result: dict, cluster_environment: str, output_file_path: str) -> None:
     # Use gridspec to create different evolution plots
     fig = plt.figure(figsize=(12, 10), dpi = 300)
     gs = fig.add_gridspec(3, 2)
@@ -372,8 +381,8 @@ def plot_one_sim(result: dict, cluster_environment = 'Nuclear') -> None:
     # Plot the evolution of the BH Mass
     ax1 = fig.add_subplot(gs[0, 0])
     ax1.plot(result['bh_mass'], color = 'teal', linewidth = 2.0, alpha = 0.9)
-    ax1.plot(np.linspace(0, len(result['bh_mass']), 30), np.linspace(0, max(result['bh_mass']), 30),\
-             color = 'red', linestyle = '--', linewidth = 1.5, alpha = 0.9)
+    # ax1.plot(np.linspace(0, len(result['bh_mass']), 30), np.linspace(0, max(result['bh_mass']), 30),\
+    #          color = 'red', linestyle = '--', linewidth = 1.5, alpha = 0.9)
     ax1.set_ylabel(r'Black Hole Mass ($M_{\odot}$)')
     ax1.set_title('Evolution of Black Hole Mass')
 
@@ -387,9 +396,9 @@ def plot_one_sim(result: dict, cluster_environment = 'Nuclear') -> None:
     # Plot the evolution of the Kerr Parameter
     ax3 = fig.add_subplot(gs[1, 0])
     ax3.plot(result['afin'], color = 'teal', linewidth = 2.0, alpha = 0.9)
-    ax3.axhline(y=np.mean(result['afin'][-10:]), color = 'red', linestyle = '--', linewidth = 1.0, alpha = 0.9)
-    ax3.text(len(result['afin']) - 20, 1.02, 'Kerr Parameter ~ {:.2f}'.format(np.mean(result['afin'][-10:])),\
-             fontsize = 10, bbox=dict(facecolor='white', alpha=0.5))
+    # ax3.axhline(y=np.mean(result['afin'][-10:]), color = 'red', linestyle = '--', linewidth = 1.0, alpha = 0.9)
+    # ax3.text(len(result['afin']) - 20, 1.02, 'Kerr Parameter ~ {:.2f}'.format(np.mean(result['afin'][-10:])),\
+    #          fontsize = 10, bbox=dict(facecolor='white', alpha=0.5))
     ax3.set_ylim(min(result['afin']), max(result['afin']) + 0.1)
     ax3.set_ylabel('Kerr Parameter')
     ax3.set_title('Evolution of Kerr Parameter')
@@ -398,9 +407,9 @@ def plot_one_sim(result: dict, cluster_environment = 'Nuclear') -> None:
     # Plot the evolution of the Effective Spin Parameter
     ax4 = fig.add_subplot(gs[1, 1])
     ax4.plot(result['xeff'], color = 'teal', linewidth = 2.0, alpha = 0.9)
-    ax4.axhline(y=np.mean(result['xeff'][-10:]), color = 'red', linestyle = '--', linewidth = 1.0, alpha = 0.9)
-    ax4.text(len(result['xeff']) - 20, 0.7, 'Eff. Spin Parameter ~ {:.2f}'.format(np.mean(result['xeff'][-10:])),\
-            fontsize = 10, bbox=dict(facecolor='white', alpha=0.5))
+    # ax4.axhline(y=np.mean(result['xeff'][-10:]), color = 'red', linestyle = '--', linewidth = 1.0, alpha = 0.9)
+    # ax4.text(len(result['xeff']) - 20, 0.7, 'Eff. Spin Parameter ~ {:.2f}'.format(np.mean(result['xeff'][-10:])),\
+            # fontsize = 10, bbox=dict(facecolor='white', alpha=0.5))
     ax4.set_ylabel('Effective Spin Parameter')
     ax4.set_title('Evolution of Effective Spin Parameter')
 
@@ -422,12 +431,12 @@ def plot_one_sim(result: dict, cluster_environment = 'Nuclear') -> None:
 
 
     fig.tight_layout()
-    plt.savefig(f'Plots_{cluster_environment}/Evolution_{cluster_environment}_cluster.png', dpi = 300)
+    plt.savefig(f'{output_file_path}/Plots_{cluster_environment}/Evolution_{cluster_environment}_cluster.png', dpi = 300)
 
+#----------------------------------------------------------------------------------------#
 
-
-
-def run_n_simulations(op_system: str, bh_mass: np.array, kerr_param: np.array, n_simulations: int, max_generation: int, escape_velocity: dict,
+def run_n_simulations(op_system: str, bh_mass: np.array, kerr_param: np.array, n_simulations: int, max_generation: int,\
+                      escape_velocity: dict, initial_params: dict,\
                        nuclear_escape: bool, young_escape: bool, globular_escape: bool) -> tuple:
     """
     Runs a specified number of simulations of hierarchical black hole mergers.
@@ -486,7 +495,8 @@ def run_n_simulations(op_system: str, bh_mass: np.array, kerr_param: np.array, n
     # Loop through the desired number of simulations using a progress bar
     for i in tqdm(range(n_simulations)):
         # Run a single hierarchical merging simulation
-        result = simulate_hierarchical_merging(op_system, bh_mass, kerr_param, total_generations = max_generation, escape_velocity=escape_velocity,
+        result = simulate_hierarchical_merging(op_system, bh_mass, kerr_param, total_generations = max_generation, \
+                                               escape_velocity=escape_velocity, initial_params=initial_params,\
                                                nuclear_escape=nuclear_escape, young_escape=young_escape, globular_escape=globular_escape)
         
         # Extract simulation data (evolution of parameters)
@@ -503,8 +513,7 @@ def run_n_simulations(op_system: str, bh_mass: np.array, kerr_param: np.array, n
 
     return overall_result, overall_result_extend, m1_vals, q_vals
     
-
-
+#----------------------------------------------------------------------------------------#
 
 def get_inherent_merge_probability(n_sim: int, overall_result: dict, n_max_gen: int) -> list:
 
@@ -547,15 +556,41 @@ def get_inherent_merge_probability(n_sim: int, overall_result: dict, n_max_gen: 
 
     return inherent_probabilities, gen_count, gen_distribution
 
+#----------------------------------------------------------------------------------------#
 
+def plot_merge_prob(inherent_probabilities: list, gen_dist: int, n_max_gen: int, cluster_environment: str) -> None:
 
+    """
+    Generates a histogram and line plot to visualize the merging probabilities 
+    across generations for a hierarchical black hole merger simulation.
 
-def plot_merge_prob(inherent_probabilities: list, gen_count: int, n_max_gen: int, cluster_environment: str) -> None:
+    Parameters:
+        inherent_probabilities (list): A list containing the inherent merging 
+                                       probability for each generation (except the first).
+        gen_count (int): The generation at which the escape condition was met 
+                         (or the maximum number of generations if not met).
+        n_max_gen (int): The maximum number of generations allowed in the simulation.
+        cluster_environment (str): The type of cluster environment simulated 
+                                     (e.g., 'Nuclear', 'Young', 'Globular').
+
+    Returns:
+        None
+
+    This function creates a plot with the following elements:
+        - A histogram showing the distribution of the generation at which escape 
+          conditions were met across multiple simulations.
+        - A line plot showing the inherent merging probability for each generation 
+          (except the first).
+        - Title: Descriptive title mentioning the cluster environment.
+        - X-axis label: "Generations"
+        - Y-axis label: "Probability"
+        - The plot is saved as a PNG image.
+    """
 
     labels = ['Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'][:n_max_gen-1]
 
     plt.figure(dpi = 200)
-    plt.hist(gen_count, bins=np.arange(0.5, n_max_gen-0.5, 1), density = True, edgecolor='black', align='mid', color='teal')
+    plt.hist(gen_dist, bins=np.arange(0.5, n_max_gen+0.5), density = True, edgecolor='black', align='mid', color='teal')
     plt.plot(np.arange(1, n_max_gen), inherent_probabilities, 'o-', color = 'orange')
     plt.title(f'Merging probabilities in {cluster_environment} cluster environment', fontsize = 11)
     plt.xticks(np.arange(1, n_max_gen), labels, fontsize = 9)
@@ -564,9 +599,44 @@ def plot_merge_prob(inherent_probabilities: list, gen_count: int, n_max_gen: int
 
     plt.savefig(f'Plots_{cluster_environment}/Merging_probabilities_{cluster_environment}.png', dpi = 200)
 
-
+#----------------------------------------------------------------------------------------#
 
 def plot_weighted_merge_prob(gen_distribution: list, n_max_gen: int, cluster_environment: str, q_vals: np.array, m1_vals: np.array) -> None:
+
+    """
+    Generates a weighted histogram to visualize the merging probabilities 
+    across generations for a hierarchical black hole merger simulation, 
+    taking into account the final mass ratio (q) and primary black hole mass (M1) 
+    of each simulation.
+
+    Parameters:
+        gen_distribution (list): A list containing the generation at which the 
+                                 escape condition was met (or the maximum number 
+                                 of generations if not met) across multiple simulations.
+        n_max_gen (int): The maximum number of generations allowed in the simulation.
+        cluster_environment (str): The type of cluster environment simulated 
+                                     (e.g., 'Nuclear', 'Young', 'Globular').
+        q_vals (np.array): A NumPy array containing the mass ratio (q) values 
+                           for each generation (including the first) of each simulation.
+        m1_vals (np.array): A NumPy array containing the primary black hole mass (M1) 
+                            values for each generation (including the first) of each simulation.
+
+    Returns:
+        None
+
+    This function creates a weighted histogram with the following elements:
+        - The x-axis shows the generation at which escape conditions were met.
+        - The y-axis shows the probability density.
+        - Each simulation outcome contributes to the histogram based on a weight 
+          calculated using a formula (alpha and beta are user-defined constants) 
+          that considers the final mass ratio (q) and primary black hole mass (M1) 
+          of that particular simulation. This weighting reflects the 
+          detection probability based on these factors (Ref. Fishbach & Holz, 2017, ApJ, 851, L25).
+        - Title: Descriptive title mentioning the cluster environment.
+        - X-axis label: "Generations"
+        - Y-axis label: "Probability"
+        - The plot is saved as a PNG image.
+    """
 
     last_qs = np.array([q_val[-1] for q_val in q_vals])
     last_m1s = np.array([m1_val[-1] for m1_val in m1_vals])
@@ -581,7 +651,7 @@ def plot_weighted_merge_prob(gen_distribution: list, n_max_gen: int, cluster_env
     weights = np.power(last_m1s, alpha) * np.power(last_qs, beta)
 
     plt.figure(dpi = 200)
-    plt.hist(gen_distribution, bins = np.arange(0.5, n_max_gen-0.5, 1), weights = weights, density = True, edgecolor='black', align='mid', color='coral')
+    plt.hist(gen_distribution, bins = np.arange(0.5, n_max_gen+0.5), weights = weights, density = True, edgecolor='black', align='mid', color='coral')
     plt.xticks(np.arange(1, n_max_gen), labels, fontsize = 9)
     plt.xlabel('Generations', fontsize = 10)
     plt.ylabel('Probability', fontsize = 10)
@@ -590,9 +660,29 @@ def plot_weighted_merge_prob(gen_distribution: list, n_max_gen: int, cluster_env
     
     plt.savefig(f'Plots_{cluster_environment}/Weighted_Merging_probabilities_{cluster_environment}.png', dpi = 200)
 
-
+#----------------------------------------------------------------------------------------#
 
 def each_gen_data(overall_result: dict, n_max_gen: int) -> dict:
+
+    """
+    Organizes simulation data from a dictionary (`overall_result`) into a 
+    structured format separated by generation.
+
+    Parameters:
+        overall_result (dict): A dictionary containing the overall simulation results, 
+                                where keys are parameter names (e.g., 'bh_mass', 'kick_vel') 
+                                and values are lists containing data points for all generations.
+        n_max_gen (int): The maximum number of generations specified in the simulation.
+
+    Returns:
+        dict: A dictionary with keys representing generation numbers (e.g., 'Gen_1', 'Gen_2') 
+              and values as dictionaries containing lists of data for each parameter 
+              extracted from the corresponding generation in the overall results.
+
+    This function helps analyze simulation results by separating data for each generation. 
+    It handles cases where there might be fewer generations than expected by filling 
+    missing entries with `np.nan`, to keep the length of all the arrays same.
+    """
 
     extract_params = ['bh_mass', 'kick_vel', 'xeff', 'afin', 'sfin', 'thfin']
 
@@ -610,7 +700,7 @@ def each_gen_data(overall_result: dict, n_max_gen: int) -> dict:
         """
 
         generation_data = {}
-        for generation in range(1, n_generations + 1):
+        for generation in range(2, n_generations + 1):
             generation_data[f"Gen_{generation}"] = {
                 'bh_mass': [],
                 'kick_vel': [],
@@ -630,15 +720,15 @@ def each_gen_data(overall_result: dict, n_max_gen: int) -> dict:
 
     return generation_params
 
+#----------------------------------------------------------------------------------------#
 
 def save_complete_simulation(file_path, result) -> None:
-
-    # file_path = f'Results/Simulation_params_{cluster_env}.pkl'
 
     # Save the dictionary to a pickle file
     with open(file_path, 'wb') as pickle_file:
         pickle.dump(result, pickle_file)
 
+#----------------------------------------------------------------------------------------#
 
 def save_concat_simulation_data(filename: str, generation_data: dict) -> None:
     """
@@ -667,6 +757,7 @@ def save_concat_simulation_data(filename: str, generation_data: dict) -> None:
     # Save the array to a text file
     np.savetxt(filename, arr, header='\t'.join(['bh_mass', 'kick_vel', 'xeff', 'afin', 'sfin', 'thfin']), delimiter='\t', comments='')
 
+#----------------------------------------------------------------------------------------#
 
 def save_each_gen_params(gen_data: dict, cluster_environment) -> None:
 
@@ -674,6 +765,82 @@ def save_each_gen_params(gen_data: dict, cluster_environment) -> None:
     for gen in list(gen_data.keys()):
         save_concat_simulation_data(f'Results_data_{cluster_environment}/each_gen_data_{gen}.txt', gen_data[gen])
 
+#----------------------------------------------------------------------------------------#
+
+def plot_correlations(data_array: np.array, concat_array: np.array, cluster_env: str, n_max_gen: int) -> None:
+
+    fig = plt.figure(figsize=(10,10))
+    gs = fig.add_gridspec(4, 4)
+
+    fig.subplots_adjust(hspace=0, wspace = 0)
+
+    # fig.suptitle('Nuclear Cluster environment', fontsize=16)
+
+    ax1 = fig.add_subplot(gs[0, 0])
+    for i in range(n_max_gen-1):
+        ax1.hist(data_array[i, :, 0], bins=25, alpha=1, label=f'Generation {i+2}', histtype='step', density = True)
+    ax1.tick_params(axis='y', labelleft=True, labelright=False, left=True, right=False)
+    # ax1.set_yticks([0.02, 0.04, 0.06])
+    # ax1.legend(bbox_to_anchor=(0.01, 1.4), loc = 'upper left', ncol = 4, fontsize = 11)
 
 
+    ax2 = fig.add_subplot(gs[1, 0])
+    ax2.scatter(concat_array[:, 0], concat_array[:, 2], s=1, alpha=0.3, color = 'steelblue')
+    ax2.set_ylabel(r'$\chi_{eff}$')
+    ax2.tick_params(axis='both',  which='both', left=True, right=True, top = True, bottom = True, direction = 'in')
+
+
+    ax3 = fig.add_subplot(gs[1, 1])
+    for i in range(n_max_gen-1):
+        ax3.hist(data_array[i, :, 2], bins=25, alpha=1, label=f'Generation {i+2}', histtype='step', density = True)
+    ax3.tick_params(axis='y',  which='both', labelleft=False, labelright=True, left=False, right=True)
+    # ax3.set_yticks([2, 4, 6, 8])
+
+
+    ax4 = fig.add_subplot(gs[2, 0])
+    ax4.scatter(concat_array[:, 0], concat_array[:, 3], s=1, alpha=0.3, color = 'steelblue')
+    ax4.set_ylabel('Eff. spin parameter')
+    ax4.tick_params(axis='both',  which='both', left=True, right=True, top = True, bottom = True, direction = 'in')
+
+
+    ax5 = fig.add_subplot(gs[2, 1])
+    ax5.scatter(concat_array[:, 2], concat_array[:, 3], s=1, alpha=0.3, color = 'steelblue')
+    ax5.tick_params(axis='both',  which='both', labelleft=False, labelright=False, left=True, right=True, top = True, bottom = True, direction = 'in')
+
+
+    ax6 = fig.add_subplot(gs[2, 2])
+    for i in range(n_max_gen-1):
+        ax6.hist(data_array[i, :, 3], bins=25, alpha=1, label=f'Generation {i+2}', histtype='step', density = True)
+    ax6.tick_params(axis='y', which = 'both', labelleft=False, labelright=True, left=False, right=True, top = True, bottom = True, direction = 'in')
+    # ax6.set_yticks([5, 10, 15])
+
+
+    ax7 = fig.add_subplot(gs[3, 0])
+    ax7.scatter(concat_array[:, 0], concat_array[:, 1], s=1, alpha=0.3, color = 'steelblue')
+    ax7.set_xlabel('BH Mass [M$_\odot$]')
+    ax7.set_ylabel('Kick velocity [km/s]')
+    ax7.tick_params(axis='both', which='both', left=True, right=True, top = True, bottom = True, direction = 'in')
+
+
+    ax8 = fig.add_subplot(gs[3, 1])
+    ax8.scatter(concat_array[:, 2], concat_array[:, 1], s=0.5, alpha=0.3, color = 'steelblue')
+    ax8.set_xlabel(r'$\chi_{eff}$')
+    ax8.tick_params(axis='both',  which='both', labelleft=False, labelright=False, left=True, right=True, top = True, bottom = True, direction = 'in')
+
+
+    ax9 = fig.add_subplot(gs[3, 2])
+    ax9.scatter(concat_array[:, 3], concat_array[:, 1], s=1, alpha=0.3, color = 'steelblue')
+    ax9.set_xlabel('Eff. spin parameter')
+    ax9.tick_params(axis='both', which='both', labelleft=False, labelright=False, left=True, right=True, top = True, bottom = True, direction = 'in')
+
+
+    ax10 = fig.add_subplot(gs[3, 3])
+    for i in range(n_max_gen-1):
+        ax10.hist(data_array[i, :, 1], bins=25, alpha=1, label=f'Generation {i+2}', histtype='step', density = True)
+    ax10.set_xlabel('Kick velocity [km/s]')
+    ax10.tick_params(axis='both',  which='both', labelleft=False, labelright=True, left=False, right=True)
+
+    ax10.legend(bbox_to_anchor=(0, 4.05), loc = 'upper left', ncol = 1, fontsize = 11)
+
+    plt.savefig(f'Plots_{cluster_env}/Param_correlation_{cluster_env}.png', dpi = 300)
 
