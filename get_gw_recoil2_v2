@@ -1,0 +1,46 @@
+#!/bin/bash
+################
+#BH1
+M1=70.0
+S1=-1.4E+02
+THETA1=0.0
+PHI1=0.0
+A1=1.0
+################
+#BH2
+M2=35.0
+S2=-1.4E+02
+THETA2=0.0
+PHI2=0.0
+A2=1.0
+################
+toolpath=~/GRkick
+toolpath2=~/NB6DATA/Tools/Lagrange2/
+IMAX=100
+IDUM=$1
+################
+#
+i=1
+while [ $i -le $IMAX ]
+do
+#
+((IDUM++))
+rand=`echo "$IDUM" | $toolpath2/genran`
+THETA1=`echo "scale=4;$rand*360.0" | bc`
+((IDUM++))
+rand=`echo "$IDUM" | $toolpath2/genran`
+PHI1=`echo "scale=4;$rand*360.0" | bc`
+((IDUM++))
+rand=`echo "$IDUM" | $toolpath2/genran`
+THETA2=`echo "scale=4;$rand*360.0" | bc`
+((IDUM++))
+rand=`echo "$IDUM" | $toolpath2/genran`
+PHI2=`echo "scale=4;$rand*360.0" | bc`
+#
+input=`echo "$M1 $M2 $S1 $THETA1 $PHI1 $S2 $THETA2 $PHI2 $A1 $A2"`
+res=`echo "$input" | $toolpath/gwkik2 | tail -1`
+#
+echo "$input    $res"
+#
+((i++))
+done
