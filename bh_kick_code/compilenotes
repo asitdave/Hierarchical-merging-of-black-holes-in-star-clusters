@@ -1,0 +1,3 @@
+gfortran-mp-9 -Wall -ffast-math ran2.f rangen.f -o genran
+gfortran-mp-9 -Wall -ffast-math gwkick.f gwrec.f -o gwkik
+gfortran-mp-9 -Wall -ffast-math gwkick2.f gwrec.f -o gwkik2
