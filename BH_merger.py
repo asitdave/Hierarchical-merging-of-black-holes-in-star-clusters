@@ -13,28 +13,25 @@ script_description = "This script simulates n number of black hole mergers and s
                         "in different star cluster environments: Open/Young cluster, Globular cluster, Nuclear cluster. "
 
 
+print('\n\n--------------------------------------------------\n'\
+      'Make sure that the directory in which the script is located contains the "bh_kick_code" directory.\n'\
+        '--------------------------------------------------\n')
+
+temp1 = input('Press Enter to continue...\nor to exit, type "exit"')
+if temp1.lower() == 'exit':
+    exit()
+
+
 parser = argparse.ArgumentParser(description=script_description)
 
 # Arguments for the directories
 parser.add_argument('-path', type=str, default=os.getcwd(), help='Path to the directory containing the gwkik2 code (Default: Current working directory)')
 parser.add_argument('-output', type=str, default=os.getcwd(), help='Path to the output directory (Default: Current working directory)')
-parser.add_argument('-n_sim', type=int, help='Number of simulations to run')
-parser.add_argument('-n_max_gen', type=int, default=4, help='Number of maximum mergers that should occur in a simulation (Default: 4)')
+parser.add_argument('-n_sim', type=int, help='Number of simulations/iterations to run')
+parser.add_argument('-n_max_gen', type=int, default=4, help='Maximum black hole generation in a single simulation (Default: 4)')
 
 # Argument for the system
-parser.add_argument('-cluster_env', type=str, help='Star cluster environment: [Open, Globular, Nuclear]')
-
-# # Arguments for the black holes' (initial) parameters
-# parser.add_argument('-m1', type=float, default=30, help='Mass of Black hole 1')
-# parser.add_argument('-m2', type=float, default=30, help='Mass of Black hole 2')
-# parser.add_argument('-s1', type=float, default=0, help='Spin (dimensional) of Black hole 1')
-# parser.add_argument('-s2', type=float, default=0, help='Spin (dimensional) of Black hole 2')
-# parser.add_argument('-theta1', type=float, default=0, help='Polar angle of Black hole 1 (in degrees)')
-# parser.add_argument('-theta2', type=float, default=0, help='Polar angle of Black hole 2 (in degrees)')
-# parser.add_argument('-phi1', type=float, default=0, help='Azimuthal angle of Black hole 1 (in degrees)')
-# parser.add_argument('-phi2', type=float, default=0, help='Azimuthal angle of Black hole 2 (in degrees)')
-# parser.add_argument('-a1', type=float, default=0.1, help='Kerr parameter (dimensionless spin) of Black hole 1')
-# parser.add_argument('-a2', type=float, default=0.1, help='Kerr parameter (dimensionless spin) of Black hole 2')
+parser.add_argument('-cluster_env', type=str, help='Star cluster environment: [Open (or Young), Globular, Nuclear]')
 
 args = parser.parse_args()
 
@@ -43,17 +40,6 @@ output = args.output
 n_sim = args.n_sim
 n_max_gen = args.n_max_gen
 cluster_env = args.cluster_env.lower()
-
-# m1 = args.m1
-# m2 = args.m2
-# s1 = args.s1
-# s2 = args.s2
-# th1 = args.theta1
-# th2 = args.theta2
-# ph1 = args.phi1
-# ph2 = args.phi2
-# a1 = args.a1
-# a2 = args.a2
 
 # Check if the path exists
 if os.path.exists(path):
@@ -99,7 +85,6 @@ print('\n--------------------------------------------------\n'\
       'Python script initiated\n'\
         '--------------------------------------------------\n')
 
-# time.sleep(1)
 
 print("\nThis python script simulates hierarchical merging in different star cluster environements. The workflow of this script is as follows:\n"\
       "1. Choose random black hole mass and its corresponding kerr parameter from 'bhlist' file.\n"\
@@ -119,7 +104,7 @@ print("\nThis python script simulates hierarchical merging in different star clu
 input("Press Enter to continue...\n")
 
 print("\nIt uses grkick code, which is code written in Fortran to simulate the black hole mergers. \n"\
-                    "The references to the equations used in the grkick code is given in the file 'gwkick.f90'.\n\n"\
+                    "The references to the equations used in the grkick code is given in the file 'gwkick2.f'.\n\n"\
                     "--------------------------------------"\
                     "\nNOTE: Before running the script, make sure that the gwkik2 code is compiled and the executable is in the same directory as this script.\n"\
                     "--------------------------------------\n\n")
@@ -286,7 +271,7 @@ try:
     plot_correlations(simulation_param_data, concat_data, cluster_env, n_max_gen)
 
 except:
-    print('Increase the number of generations to plot the correlation plot.')
+    print('\nIncrease the number of simulations to plot the correlation plot.')
 
 print('\nPlots saved successfully!')
 

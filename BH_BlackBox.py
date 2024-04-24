@@ -78,11 +78,11 @@ def get_post_merge_params(input_params: str, op_system: str) -> str:
     
     if op_system == 'Windows':
         # Construct the input command (FOR WINDOWS)
-        command = f'echo {input_params} | .\\gwkik2'
+        command = f'echo {input_params} | bh_kick_code\\gwkik2'
 
     elif op_system in ['Linux-based', 'MacOS']:
         # Construct the input command (FOR LINUX)
-        command = f'echo {input_params} | ./gwkik2'
+        command = f'echo {input_params} | bh_kick_code/gwkik2'
     
     else:
         raise ValueError('Operating system not supported! Use either Linux or Windows or MacOS')
