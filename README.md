@@ -15,7 +15,7 @@ A flowchart of the script is shown below.
 ![algorithm_flowchart](Algorithm_flowchart.001.jpeg)
 
 
-1. **Initialization:** 
+1. **Initialization:**  
    - The script read black hole data (mass and Kerr parameter) from `bhlist.dat` file and uses it to select a black hole randomly for a merger. You can make your own set of data, with first column for Black hole mass, and second for Kerr parameter. 
    - It sets up the simulation parameters, including the number of generations and escape criteria.
 
