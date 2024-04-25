@@ -12,7 +12,7 @@ This Python script looks into the hierarchical black hole mergers, meticulously 
 
 A flowchart of the script is shown below.
 
-![algorithm_flowchart](Algorithm_flowchart.001.jpeg)
+![algorithm_flowchart](Algorithm_flowchart.jpeg)
 
 
 1. **Initialization:**  
